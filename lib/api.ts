@@ -116,6 +116,13 @@ class ApiClient {
     });
   }
 
+  async updateQuoteStatus(id: string, status: string, notes?: string) {
+    return this.request<any>(`/admin/quotes/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
+    });
+  }
+
   // Admin - Commissions
   async getCommissions(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

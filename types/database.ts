@@ -83,6 +83,15 @@ export interface Customer {
   email?: string;
   phone?: string;
   address?: string;
+  date_of_birth?: string;
+  sex?: 'M' | 'F';
+  postal_code?: string;
+  city?: string;
+  province?: string;
+  street_name?: string;
+  street_number?: string;
+  floor?: string;
+  apartment?: string;
 }
 
 export interface Vehicle {
@@ -93,6 +102,7 @@ export interface Vehicle {
   year?: number;
   color?: string;
   vehicle_type?: string;
+  fuel_type?: string;
 }
 
 export interface InsurancePlan {

@@ -15,8 +15,11 @@ export default function QuoteDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showFixModal, setShowFixModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [reason, setReason] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [newStatus, setNewStatus] = useState('');
+  const [statusNotes, setStatusNotes] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,6 +85,33 @@ export default function QuoteDetailPage() {
     }
   };
 
+  const handleUpdateStatus = async () => {
+    if (!newStatus) return;
+    setActionLoading(true);
+    try {
+      await api.updateQuoteStatus(id as string, newStatus, statusNotes || undefined);
+      setShowStatusModal(false);
+      setNewStatus('');
+      setStatusNotes('');
+      const result = await api.getQuoteDetail(id as string);
+      setQuote(result.quote);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const allStatuses = [
+    { value: 'draft', label: t('status_draft' as any) },
+    { value: 'pending_uploads', label: t('status_pending_uploads' as any) },
+    { value: 'processing_ai', label: t('status_processing_ai' as any) },
+    { value: 'pending_review', label: t('status_pending_review' as any) },
+    { value: 'approved', label: t('status_approved' as any) },
+    { value: 'rejected', label: t('status_rejected' as any) },
+    { value: 'needs_fix', label: t('status_needs_fix' as any) },
+  ];
+
   const photoTypeLabel: Record<string, string> = {
     plate: locale === 'es' ? 'Patente' : 'Plate',
     front: locale === 'es' ? 'Frente' : 'Front',
@@ -139,31 +169,40 @@ export default function QuoteDetailPage() {
         </div>
 
         {/* Actions */}
-        {quote.status === 'pending_review' && (
-          <div className="flex gap-3">
-            <button
-              onClick={handleApprove}
-              disabled={actionLoading}
-              className="px-5 py-2.5 bg-success text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
-            >
-              {t('approve_quote')}
-            </button>
-            <button
-              onClick={() => setShowFixModal(true)}
-              disabled={actionLoading}
-              className="px-5 py-2.5 bg-warning text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
-            >
-              {t('request_fix')}
-            </button>
-            <button
-              onClick={() => setShowRejectModal(true)}
-              disabled={actionLoading}
-              className="px-5 py-2.5 bg-error text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
-            >
-              {t('reject_quote')}
-            </button>
-          </div>
-        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => { setNewStatus(quote.status); setShowStatusModal(true); }}
+            disabled={actionLoading}
+            className="px-5 py-2.5 bg-secondary text-foreground border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 disabled:opacity-50 transition-all"
+          >
+            {t('change_status' as any)}
+          </button>
+          {quote.status === 'pending_review' && (
+            <>
+              <button
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="px-5 py-2.5 bg-success text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {t('approve_quote')}
+              </button>
+              <button
+                onClick={() => setShowFixModal(true)}
+                disabled={actionLoading}
+                className="px-5 py-2.5 bg-warning text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {t('request_fix')}
+              </button>
+              <button
+                onClick={() => setShowRejectModal(true)}
+                disabled={actionLoading}
+                className="px-5 py-2.5 bg-error text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {t('reject_quote')}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -181,17 +220,29 @@ export default function QuoteDetailPage() {
                 {quote.vehicle && (
                   <>
                     <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">{locale === 'es' ? 'Marca/Modelo' : 'Make/Model'}</dt>
-                      <dd className="text-sm text-foreground">{quote.vehicle.make} {quote.vehicle.model}</dd>
+                      <dt className="text-sm text-muted-foreground">{t('vehicle_make' as any)}</dt>
+                      <dd className="text-sm text-foreground">{quote.vehicle.make || '-'}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">{locale === 'es' ? 'Año' : 'Year'}</dt>
-                      <dd className="text-sm text-foreground">{quote.vehicle.year}</dd>
+                      <dt className="text-sm text-muted-foreground">{t('vehicle_model' as any)}</dt>
+                      <dd className="text-sm text-foreground">{quote.vehicle.model || '-'}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-sm text-muted-foreground">{locale === 'es' ? 'Color' : 'Color'}</dt>
-                      <dd className="text-sm text-foreground">{quote.vehicle.color}</dd>
+                      <dt className="text-sm text-muted-foreground">{t('vehicle_year' as any)}</dt>
+                      <dd className="text-sm text-foreground">{quote.vehicle.year || '-'}</dd>
                     </div>
+                    {quote.vehicle.color && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('vehicle_color' as any)}</dt>
+                        <dd className="text-sm text-foreground">{quote.vehicle.color}</dd>
+                      </div>
+                    )}
+                    {quote.vehicle.fuel_type && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('vehicle_fuel' as any)}</dt>
+                        <dd className="text-sm text-foreground">{quote.vehicle.fuel_type}</dd>
+                      </div>
+                    )}
                   </>
                 )}
               </dl>
@@ -210,6 +261,18 @@ export default function QuoteDetailPage() {
                       <dt className="text-sm text-muted-foreground">{t('name')}</dt>
                       <dd className="text-sm text-foreground">{quote.customer.full_name}</dd>
                     </div>
+                    {quote.customer.date_of_birth && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('date_of_birth' as any)}</dt>
+                        <dd className="text-sm text-foreground">{quote.customer.date_of_birth}</dd>
+                      </div>
+                    )}
+                    {quote.customer.sex && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('sex' as any)}</dt>
+                        <dd className="text-sm text-foreground">{quote.customer.sex === 'M' ? t('male' as any) : t('female' as any)}</dd>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <dt className="text-sm text-muted-foreground">{t('email')}</dt>
                       <dd className="text-sm text-foreground">{quote.customer.email || '-'}</dd>
@@ -218,6 +281,28 @@ export default function QuoteDetailPage() {
                       <dt className="text-sm text-muted-foreground">{t('phone')}</dt>
                       <dd className="text-sm text-foreground">{quote.customer.phone || '-'}</dd>
                     </div>
+                    {(quote.customer.address || quote.customer.street_name) && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('address' as any)}</dt>
+                        <dd className="text-sm text-foreground text-right max-w-[60%]">
+                          {quote.customer.street_name
+                            ? [quote.customer.street_name, quote.customer.street_number, quote.customer.floor ? `P${quote.customer.floor}` : '', quote.customer.apartment ? `D${quote.customer.apartment}` : ''].filter(Boolean).join(' ')
+                            : quote.customer.address || '-'}
+                        </dd>
+                      </div>
+                    )}
+                    {(quote.customer.city || quote.customer.province) && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('city')}</dt>
+                        <dd className="text-sm text-foreground">{[quote.customer.city, quote.customer.province].filter(Boolean).join(', ') || '-'}</dd>
+                      </div>
+                    )}
+                    {quote.customer.postal_code && (
+                      <div className="flex justify-between">
+                        <dt className="text-sm text-muted-foreground">{t('postal_code' as any)}</dt>
+                        <dd className="text-sm text-foreground">{quote.customer.postal_code}</dd>
+                      </div>
+                    )}
                   </>
                 )}
               </dl>
@@ -416,6 +501,42 @@ export default function QuoteDetailPage() {
             <div className="flex gap-3 mt-4 justify-end">
               <button onClick={() => setShowFixModal(false)} className="px-4 py-2 text-sm rounded-xl border border-border hover:bg-secondary transition-colors">{t('cancel')}</button>
               <button onClick={handleRequestFix} disabled={!instructions || actionLoading} className="px-4 py-2 text-sm rounded-xl bg-warning text-white hover:opacity-90 disabled:opacity-50 transition-all">{t('confirm')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Status Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl border border-border p-6 w-full max-w-md animate-fade-in">
+            <h3 className="text-lg font-semibold text-foreground mb-4">{t('change_status' as any)}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">{t('new_status' as any)}</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {allStatuses.map(s => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">{locale === 'es' ? 'Notas (opcional)' : 'Notes (optional)'}</label>
+                <textarea
+                  value={statusNotes}
+                  onChange={(e) => setStatusNotes(e.target.value)}
+                  placeholder={locale === 'es' ? 'Notas adicionales...' : 'Additional notes...'}
+                  className="w-full px-4 py-3 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring min-h-[80px]"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4 justify-end">
+              <button onClick={() => setShowStatusModal(false)} className="px-4 py-2 text-sm rounded-xl border border-border hover:bg-secondary transition-colors">{t('cancel')}</button>
+              <button onClick={handleUpdateStatus} disabled={!newStatus || newStatus === quote.status || actionLoading} className="px-4 py-2 text-sm rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50 transition-all">{t('update_status' as any)}</button>
             </div>
           </div>
         </div>
