@@ -47,9 +47,7 @@ export default function QuotesPage() {
   useEffect(() => { loadQuotes(); }, [loadQuotes]);
 
   const statusKey = (s: string) => `status_${s}` as any;
-  const fmtMoney = (n: number) => new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US', {
-    style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
-  }).format(n);
+  const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale === 'es' ? 'es-AR' : 'en-US', {
     day: '2-digit', month: 'short', year: 'numeric',
   });

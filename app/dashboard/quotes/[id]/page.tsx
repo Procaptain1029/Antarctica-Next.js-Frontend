@@ -36,9 +36,7 @@ export default function QuoteDetailPage() {
     load();
   }, [id]);
 
-  const fmtMoney = (n: number) => new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US', {
-    style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
-  }).format(n);
+  const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale === 'es' ? 'es-AR' : 'en-US', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',

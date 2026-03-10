@@ -24,9 +24,7 @@ export default function ReportsPage() {
     load();
   }, []);
 
-  const fmtMoney = (n: number) => new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US', {
-    style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
-  }).format(n);
+  const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
 
   const handleExport = async (type: string) => {
     try {

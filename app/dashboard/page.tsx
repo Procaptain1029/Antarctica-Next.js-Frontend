@@ -62,11 +62,7 @@ export default function DashboardPage() {
   }
 
   const fmt = (n: number) => new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US').format(n);
-  const fmtMoney = (n: number) => new Intl.NumberFormat(locale === 'es' ? 'es-AR' : 'en-US', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(n);
+  const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
 
   return (
     <div className="space-y-6">
