@@ -251,8 +251,14 @@ export default function QuoteDetailPage() {
               <dl className="space-y-3">
                 <div className="flex justify-between">
                   <dt className="text-sm text-muted-foreground">DNI</dt>
-                  <dd className="text-sm font-mono text-foreground">{quote.customer_dni}</dd>
+                  <dd className="text-sm font-mono text-foreground">{quote.customer_dni ? new Intl.NumberFormat('es-AR').format(Number(quote.customer_dni)) : '-'}</dd>
                 </div>
+                {(quote.customer_data as any)?.cuit && (
+                  <div className="flex justify-between">
+                    <dt className="text-sm text-muted-foreground">CUIT</dt>
+                    <dd className="text-sm font-mono text-foreground">{(quote.customer_data as any).cuit}</dd>
+                  </div>
+                )}
                 {quote.customer && (
                   <>
                     <div className="flex justify-between">
@@ -380,9 +386,15 @@ export default function QuoteDetailPage() {
             </div>
             <dl className="space-y-2 mt-4 border-t border-border pt-4">
               <div className="flex justify-between">
-                <dt className="text-sm text-muted-foreground">{locale === 'es' ? 'Productor' : 'Producer'}</dt>
+                <dt className="text-sm text-muted-foreground">{locale === 'es' ? 'Promotor' : 'Promoter'}</dt>
                 <dd className="text-sm text-foreground">{(quote.producer as any)?.full_name}</dd>
               </div>
+              {(quote.vehicle_data as any)?.api_meta?.solicitud && (
+                <div className="flex justify-between">
+                  <dt className="text-sm text-muted-foreground">{t('solicitud_number')}</dt>
+                  <dd className="text-sm font-mono font-bold text-primary">{(quote.vehicle_data as any).api_meta.solicitud}</dd>
+                </div>
+              )}
               {quote.submitted_at && (
                 <div className="flex justify-between">
                   <dt className="text-sm text-muted-foreground">{t('submitted_at')}</dt>

@@ -32,9 +32,9 @@ export const translations = {
 
     // Sidebar
     dashboard: 'Panel Principal',
-    producers: 'Productores',
+    producers: 'Promotores',
     quotes: 'Cotizaciones',
-    commissions: 'Comisiones',
+    commissions: 'Ratificaciones',
     reports: 'Reportes',
     settings: 'Configuración',
 
@@ -43,17 +43,17 @@ export const translations = {
     pending_review: 'Pendientes de Revisión',
     approved_quotes: 'Cotizaciones Aprobadas',
     total_premium: 'Prima Total',
-    active_producers: 'Productores Activos',
-    pending_producers: 'Productores Pendientes',
-    commissions_due: 'Comisiones Pendientes',
-    commissions_paid: 'Comisiones Pagadas',
+    active_producers: 'Promotores Activos',
+    pending_producers: 'Promotores Pendientes',
+    commissions_due: 'Ratificaciones Pendientes',
+    commissions_paid: 'Ratificaciones Pagadas',
     monthly_overview: 'Resumen Mensual',
     top_producers: 'Top Productores',
     plan_distribution: 'Distribución por Plan',
     recent_activity: 'Actividad Reciente',
 
     // Producers
-    producer_management: 'Gestión de Productores',
+    producer_management: 'Gestión de Promotores',
     all_producers: 'Todos',
     pending: 'Pendientes',
     approved: 'Aprobados',
@@ -92,8 +92,10 @@ export const translations = {
     created_at: 'Fecha de Creación',
     submitted_at: 'Fecha de Envío',
 
+    solicitud_number: 'Nº Solicitud',
+
     // Commissions
-    commission_management: 'Gestión de Comisiones',
+    commission_management: 'Gestión de Ratificaciones',
     mark_paid: 'Marcar Pagada',
     total_due: 'Total Pendiente',
     total_paid_amount: 'Total Pagado',
@@ -182,9 +184,9 @@ export const translations = {
 
     // Sidebar
     dashboard: 'Dashboard',
-    producers: 'Producers',
+    producers: 'Promoters',
     quotes: 'Quotes',
-    commissions: 'Commissions',
+    commissions: 'Ratifications',
     reports: 'Reports',
     settings: 'Settings',
 
@@ -193,17 +195,17 @@ export const translations = {
     pending_review: 'Pending Review',
     approved_quotes: 'Approved Quotes',
     total_premium: 'Total Premium',
-    active_producers: 'Active Producers',
-    pending_producers: 'Pending Producers',
-    commissions_due: 'Commissions Due',
-    commissions_paid: 'Commissions Paid',
+    active_producers: 'Active Promoters',
+    pending_producers: 'Pending Promoters',
+    commissions_due: 'Ratifications Due',
+    commissions_paid: 'Ratifications Paid',
     monthly_overview: 'Monthly Overview',
     top_producers: 'Top Producers',
     plan_distribution: 'Plan Distribution',
     recent_activity: 'Recent Activity',
 
     // Producers
-    producer_management: 'Producer Management',
+    producer_management: 'Promoter Management',
     all_producers: 'All',
     pending: 'Pending',
     approved: 'Approved',
@@ -242,8 +244,10 @@ export const translations = {
     created_at: 'Created Date',
     submitted_at: 'Submitted Date',
 
+    solicitud_number: 'Request #',
+
     // Commissions
-    commission_management: 'Commission Management',
+    commission_management: 'Ratification Management',
     mark_paid: 'Mark as Paid',
     total_due: 'Total Due',
     total_paid_amount: 'Total Paid',
