@@ -81,6 +81,20 @@ class ApiClient {
     });
   }
 
+  async updateProducer(id: string, data: Record<string, any>) {
+    return this.request<any>(`/admin/producers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deactivateProducer(id: string, reason?: string) {
+    return this.request<any>(`/admin/producers/${id}/deactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
   // Admin - Quotes
   async getQuotes(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

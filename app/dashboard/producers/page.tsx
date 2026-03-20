@@ -23,6 +23,10 @@ export default function ProducersPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editingRate, setEditingRate] = useState<string | null>(null);
   const [newRate, setNewRate] = useState('');
+  // Edit modal state
+  const [editingProducer, setEditingProducer] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [editSaving, setEditSaving] = useState(false);
 
   const loadProducers = useCallback(async () => {
     setLoading(true);
@@ -43,6 +47,20 @@ export default function ProducersPage() {
   useEffect(() => { loadProducers(); }, [loadProducers]);
 
   const handleAction = async (producerId: string, action: string) => {
+    if (action === 'deactivate') {
+      const reason = window.prompt(locale === 'es' ? 'Motivo de baja (opcional):' : 'Deactivation reason (optional):');
+      if (reason === null) return; // cancelled
+      setActionLoading(producerId);
+      try {
+        await api.deactivateProducer(producerId, reason || undefined);
+        loadProducers();
+      } catch (err) {
+        console.error('Failed to deactivate producer:', err);
+      } finally {
+        setActionLoading(null);
+      }
+      return;
+    }
     setActionLoading(producerId);
     try {
       switch (action) {
@@ -72,9 +90,39 @@ export default function ProducersPage() {
     }
   };
 
+  const openEditModal = (producer: any) => {
+    setEditingProducer(producer);
+    setEditForm({
+      full_name: producer.full_name || '',
+      email: producer.email || '',
+      phone: producer.phone || '',
+      dni: producer.dni || '',
+      whatsapp: producer.whatsapp || '',
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingProducer) return;
+    setEditSaving(true);
+    try {
+      await api.updateProducer(editingProducer.id, editForm);
+      setEditingProducer(null);
+      loadProducers();
+    } catch (err) {
+      console.error('Failed to update producer:', err);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const statusLabel = (s: string) => {
     const key = s as 'pending' | 'approved' | 'rejected' | 'suspended';
     return t(key);
+  };
+
+  const formatDni = (dni: string | null) => {
+    if (!dni) return '-';
+    return new Intl.NumberFormat('es-AR').format(Number(dni));
   };
 
   return (
@@ -83,7 +131,7 @@ export default function ProducersPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t('producer_management')}</h1>
           <p className="text-muted-foreground mt-1">
-            {locale === 'es' ? 'Gestiona las cuentas de micro-productores' : 'Manage micro-producer accounts'}
+            {locale === 'es' ? 'ABM de promotores — Alta, Baja, Modificación' : 'Promotor management — Create, Deactivate, Modify'}
           </p>
         </div>
       </div>
@@ -125,19 +173,20 @@ export default function ProducersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('name')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('email')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('phone')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('city')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('status')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('commission_rate')}</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('actions')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{locale === 'es' ? 'Código' : 'Code'}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('name')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">DNI</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('email')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('phone')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('status')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('commission_rate')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
                     <svg className="animate-spin w-6 h-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -147,11 +196,20 @@ export default function ProducersPage() {
                 </tr>
               ) : producers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">{t('no_data')}</td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">{t('no_data')}</td>
                 </tr>
               ) : producers.map(producer => (
                 <tr key={producer.id} className="hover:bg-muted/30 transition-colors animate-fade-in">
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
+                    {(producer as any).promotor_code ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-sm font-bold font-mono">
+                        {(producer as any).promotor_code}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
                         {producer.full_name.charAt(0).toUpperCase()}
@@ -159,15 +217,15 @@ export default function ProducersPage() {
                       <span className="text-sm font-medium text-foreground">{producer.full_name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{producer.email}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{producer.phone || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{producer.city || '-'}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 text-sm text-muted-foreground font-mono">{formatDni((producer as any).dni)}</td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">{producer.email}</td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">{producer.phone || '-'}</td>
+                  <td className="px-4 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[producer.status]}`}>
                       {statusLabel(producer.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     {editingRate === producer.id ? (
                       <div className="flex items-center gap-2">
                         <input
@@ -190,8 +248,15 @@ export default function ProducersPage() {
                       </button>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
+                  <td className="px-4 py-4">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {/* Edit button (always visible) */}
+                      <button
+                        onClick={() => openEditModal(producer)}
+                        className="px-3 py-1 text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                      >
+                        {locale === 'es' ? 'Editar' : 'Edit'}
+                      </button>
                       {producer.status === 'pending' && (
                         <>
                           <button
@@ -199,7 +264,7 @@ export default function ProducersPage() {
                             disabled={actionLoading === producer.id}
                             className="px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-lg hover:bg-success/20 transition-colors disabled:opacity-50"
                           >
-                            {t('approve')}
+                            {locale === 'es' ? 'Alta' : 'Approve'}
                           </button>
                           <button
                             onClick={() => handleAction(producer.id, 'reject')}
@@ -212,11 +277,11 @@ export default function ProducersPage() {
                       )}
                       {producer.status === 'approved' && (
                         <button
-                          onClick={() => handleAction(producer.id, 'suspend')}
+                          onClick={() => handleAction(producer.id, 'deactivate')}
                           disabled={actionLoading === producer.id}
-                          className="px-3 py-1 text-xs font-medium bg-warning/10 text-warning rounded-lg hover:bg-warning/20 transition-colors disabled:opacity-50"
+                          className="px-3 py-1 text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50"
                         >
-                          {t('suspend')}
+                          {locale === 'es' ? 'Baja' : 'Deactivate'}
                         </button>
                       )}
                       {producer.status === 'suspended' && (
@@ -261,6 +326,61 @@ export default function ProducersPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingProducer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-foreground">
+                {locale === 'es' ? 'Editar Promotor' : 'Edit Promotor'}
+                {(editingProducer as any).promotor_code && (
+                  <span className="ml-2 text-sm font-mono text-primary">#{(editingProducer as any).promotor_code}</span>
+                )}
+              </h2>
+              <button onClick={() => setEditingProducer(null)} className="text-muted-foreground hover:text-foreground text-xl">✕</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { key: 'full_name', label: locale === 'es' ? 'Nombre Completo' : 'Full Name' },
+                { key: 'dni', label: 'DNI' },
+                { key: 'email', label: 'Email' },
+                { key: 'phone', label: locale === 'es' ? 'Teléfono' : 'Phone' },
+                { key: 'whatsapp', label: 'WhatsApp' },
+              ].map(({ key, label }) => (
+                <div key={key} className={key === 'full_name' ? 'col-span-2' : ''}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">{label}</label>
+                  <input
+                    type="text"
+                    value={editForm[key] || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setEditingProducer(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                {locale === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {editSaving
+                  ? (locale === 'es' ? 'Guardando...' : 'Saving...')
+                  : (locale === 'es' ? 'Guardar Cambios' : 'Save Changes')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
