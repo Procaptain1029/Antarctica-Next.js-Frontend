@@ -3,17 +3,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { api } from '@/lib/api';
-import { Commission } from '@/types/database';
+import { CommissionEntry } from '@/types/database';
 
 const statusStyles: Record<string, string> = {
-  pending: 'bg-warning/10 text-warning',
+  due: 'bg-warning/10 text-warning',
   paid: 'bg-success/10 text-success',
-  cancelled: 'bg-error/10 text-error',
 };
 
 export default function CommissionsPage() {
   const { t, locale } = useI18n();
-  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [commissions, setCommissions] = useState<CommissionEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -32,14 +31,14 @@ export default function CommissionsPage() {
   const handleCancel = async (id: string) => { setActionLoading(id); try { await api.cancelCommission(id); load(); } catch (err) { console.error(err); } finally { setActionLoading(null); } };
   const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(n)}`;
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale === 'es' ? 'es-AR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-  const statusLabel = (s: string) => t(s as 'pending' | 'paid' | 'cancelled');
+  const statusLabel = (s: string) => t(s as 'due' | 'paid');
 
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-foreground">{t('commission_management')}</h1>
 
       <div className="flex gap-1.5">
-        {['', 'pending', 'paid', 'cancelled'].map(s => (
+        {['', 'due', 'paid'].map(s => (
           <button key={s} onClick={() => { setFilter(s); setPage(1); }}
             className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors ${filter === s ? 'bg-foreground text-card' : 'text-muted-foreground hover:bg-secondary'}`}>
             {s === '' ? (locale === 'es' ? 'Todas' : 'All') : statusLabel(s)}
@@ -82,7 +81,7 @@ export default function CommissionsPage() {
                   <td className="px-5 py-4"><span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${statusStyles[c.status] || ''}`}>{statusLabel(c.status)}</span></td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{fmtDate(c.created_at)}</td>
                   <td className="px-5 py-4">
-                    {c.status === 'pending' && (
+                    {c.status === 'due' && (
                       <div className="flex gap-1.5">
                         <button onClick={() => handlePay(c.id)} disabled={actionLoading === c.id} className="px-3 py-1.5 text-xs font-bold text-success bg-success/10 rounded-lg hover:bg-success/20 disabled:opacity-50">{locale === 'es' ? 'Pagar' : 'Pay'}</button>
                         <button onClick={() => handleCancel(c.id)} disabled={actionLoading === c.id} className="px-3 py-1.5 text-xs font-bold text-error bg-error/10 rounded-lg hover:bg-error/20 disabled:opacity-50">{locale === 'es' ? 'Cancelar' : 'Cancel'}</button>

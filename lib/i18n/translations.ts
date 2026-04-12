@@ -108,6 +108,7 @@ export const translations = {
     due: 'Pendiente',
 
     // Reports
+    report_management: 'Gestión de Reportes',
     reports_analytics: 'Reportes y Analíticas',
     conversion_rate: 'Tasa de Conversión',
     income_report: 'Reporte de Ingresos',
@@ -261,6 +262,7 @@ export const translations = {
     due: 'Due',
 
     // Reports
+    report_management: 'Report Management',
     reports_analytics: 'Reports & Analytics',
     conversion_rate: 'Conversion Rate',
     income_report: 'Income Report',
