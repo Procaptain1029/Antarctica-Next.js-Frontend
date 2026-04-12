@@ -2,6 +2,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 class ApiClient {
   private baseUrl: string;
+  private cachedToken: string | null = null;
+  private tokenExpiresAt = 0;
+  private tokenPromise: Promise<string | null> | null = null;
 
   constructor() {
     this.baseUrl = `${API_URL}/api`;
@@ -9,10 +12,35 @@ class ApiClient {
 
   private async getToken(): Promise<string | null> {
     if (typeof window === 'undefined') return null;
-    const { createClient } = await import('./supabase/client');
-    const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || null;
+
+    if (this.cachedToken && Date.now() < this.tokenExpiresAt) {
+      return this.cachedToken;
+    }
+
+    if (this.tokenPromise) return this.tokenPromise;
+
+    this.tokenPromise = (async () => {
+      try {
+        const { createClient } = await import('./supabase/client');
+        const supabase = createClient();
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token || null;
+        if (token) {
+          this.cachedToken = token;
+          this.tokenExpiresAt = Date.now() + 4 * 60 * 1000;
+        }
+        return token;
+      } finally {
+        this.tokenPromise = null;
+      }
+    })();
+
+    return this.tokenPromise;
+  }
+
+  clearTokenCache() {
+    this.cachedToken = null;
+    this.tokenExpiresAt = 0;
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -28,11 +56,11 @@ class ApiClient {
     });
 
     if (!res.ok) {
+      if (res.status === 401) this.clearTokenCache();
       const error = await res.json().catch(() => ({ error: 'Request failed' }));
       throw new Error(error.error || 'Request failed');
     }
 
-    // Check if response is file download
     const contentType = res.headers.get('content-type');
     if (contentType?.includes('spreadsheet') || contentType?.includes('octet-stream')) {
       return res.blob() as unknown as T;
@@ -147,9 +175,23 @@ class ApiClient {
     return this.request<any>(`/admin/commissions/${id}/mark-paid`, { method: 'POST' });
   }
 
+  async cancelCommission(id: string) {
+    return this.request<any>(`/admin/commissions/${id}/cancel`, { method: 'POST' });
+  }
+
   // Admin - Reports
   async getDashboardData() {
     return this.request<any>('/admin/reports/dashboard');
+  }
+
+  async downloadReport(params: Record<string, string>) {
+    const query = new URLSearchParams(params).toString();
+    const token = await this.getToken();
+    const res = await fetch(`${this.baseUrl}/admin/reports/export?${query}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Download failed');
+    return res.blob();
   }
 
   async exportReport(type: string, params: Record<string, string> = {}) {

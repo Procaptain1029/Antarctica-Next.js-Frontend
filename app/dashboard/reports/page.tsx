@@ -1,191 +1,95 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { api } from '@/lib/api';
-import { DashboardData } from '@/types/database';
+
+type ReportType = 'quotes' | 'commissions' | 'producers';
 
 export default function ReportsPage() {
   const { t, locale } = useI18n();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [reportType, setReportType] = useState<ReportType>('quotes');
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const result = await api.getDashboardData();
-        setData(result);
-      } catch (err) {
-        console.error('Failed to load reports:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  const fmtMoney = (n: number) => `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(n)}`;
-
-  const handleExport = async (type: string) => {
+  const downloadReport = async (format: 'excel' | 'pdf') => {
+    setLoading(true);
     try {
-      await api.exportReport(type);
-    } catch (err) {
-      console.error('Export failed:', err);
-    }
+      const params: Record<string, string> = { type: reportType, format };
+      if (dateFrom) params.from = dateFrom;
+      if (dateTo) params.to = dateTo;
+      const blob = await api.downloadReport(params);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report-${reportType}-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <svg className="animate-spin w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      </div>
-    );
-  }
-
-  const conversionRate = data?.quotes.total
-    ? ((data.quotes.approved / data.quotes.total) * 100).toFixed(1)
-    : '0';
+  const reports = [
+    { key: 'quotes' as const, icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+    ), color: 'bg-primary/10 text-primary', label: locale === 'es' ? 'Cotizaciones' : 'Quotes', desc: locale === 'es' ? 'Reporte detallado de cotizaciones' : 'Detailed quotation report' },
+    { key: 'commissions' as const, icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    ), color: 'bg-warning/10 text-warning', label: locale === 'es' ? 'Comisiones' : 'Commissions', desc: locale === 'es' ? 'Liquidaciones y pagos' : 'Settlements and payments' },
+    { key: 'producers' as const, icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    ), color: 'bg-info/10 text-info', label: locale === 'es' ? 'Promotores' : 'Producers', desc: locale === 'es' ? 'Estado de la red comercial' : 'Sales network status' },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('reports_analytics')}</h1>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleExport('quotes')}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl text-sm font-medium hover:bg-border transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            </svg>
-            {locale === 'es' ? 'Exportar Cotizaciones' : 'Export Quotes'}
+    <div className="space-y-5">
+      <h1 className="text-2xl font-bold text-foreground">{t('report_management')}</h1>
+
+      {/* Report Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {reports.map(r => (
+          <button key={r.key} onClick={() => setReportType(r.key)}
+            className={`bg-card rounded-2xl p-5 card-shadow text-left transition-all ${reportType === r.key ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-border'}`}>
+            <div className={`w-12 h-12 rounded-xl ${r.color} flex items-center justify-center mb-4`}>{r.icon}</div>
+            <p className="text-sm font-bold text-foreground">{r.label}</p>
+            <p className="text-xs text-muted-foreground mt-1">{r.desc}</p>
           </button>
-          <button
-            onClick={() => handleExport('commissions')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            </svg>
-            {locale === 'es' ? 'Exportar Comisiones' : 'Export Commissions'}
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">{t('conversion_rate')}</p>
-          <p className="text-3xl font-bold text-primary mt-2">{conversionRate}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{data?.quotes.approved}/{data?.quotes.total} {locale === 'es' ? 'cotizaciones' : 'quotes'}</p>
-        </div>
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">{t('total_premium')}</p>
-          <p className="text-3xl font-bold text-success mt-2">{fmtMoney(data?.quotes.total_premium || 0)}</p>
-        </div>
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">{t('active_producers')}</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{data?.producers.approved || 0}</p>
-          <p className="text-xs text-muted-foreground mt-1">{data?.producers.total} total</p>
-        </div>
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <p className="text-sm text-muted-foreground">{locale === 'es' ? 'Comisiones Totales' : 'Total Commissions'}</p>
-          <p className="text-3xl font-bold text-purple-500 mt-2">{fmtMoney((data?.commissions.totalDue || 0) + (data?.commissions.totalPaid || 0))}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trends */}
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">{t('monthly_overview')}</h3>
-          <div className="space-y-4">
-            {data?.monthly?.slice(0, 6).map((month) => {
-              const date = new Date(month.month);
-              const label = date.toLocaleDateString(locale === 'es' ? 'es-AR' : 'en-US', { month: 'short', year: 'numeric' });
-              const maxQuotes = Math.max(...(data.monthly?.map(m => m.total_quotes) || [1]));
-              const pct = maxQuotes > 0 ? (month.total_quotes / maxQuotes * 100) : 0;
-
-              return (
-                <div key={month.month}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-foreground font-medium">{label}</span>
-                    <span className="text-muted-foreground">{month.total_quotes} {locale === 'es' ? 'cotizaciones' : 'quotes'}</span>
-                  </div>
-                  <div className="w-full h-3 bg-secondary rounded-full overflow-hidden flex">
-                    <div className="h-full bg-success rounded-full" style={{ width: `${month.approved / Math.max(month.total_quotes, 1) * pct}%` }} />
-                    <div className="h-full bg-error rounded-full" style={{ width: `${month.rejected / Math.max(month.total_quotes, 1) * pct}%` }} />
-                    <div className="h-full bg-warning rounded-full" style={{ width: `${month.pending / Math.max(month.total_quotes, 1) * pct}%` }} />
-                  </div>
-                  <div className="flex gap-4 mt-1">
-                    <span className="text-xs text-success">✓ {month.approved}</span>
-                    <span className="text-xs text-error">✕ {month.rejected}</span>
-                    <span className="text-xs text-warning">⏳ {month.pending}</span>
-                    {month.total_premium > 0 && <span className="text-xs text-muted-foreground ml-auto">{fmtMoney(month.total_premium)}</span>}
-                  </div>
-                </div>
-              );
-            })}
-            {(!data?.monthly || data.monthly.length === 0) && (
-              <p className="text-muted-foreground text-sm text-center py-8">{t('no_data')}</p>
-            )}
+      {/* Date Filters */}
+      <div className="bg-card rounded-2xl card-shadow p-6">
+        <h3 className="text-base font-bold text-foreground mb-4">{locale === 'es' ? 'Filtros y Descarga' : 'Filters & Download'}</h3>
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
+          <div className="flex-1">
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">{locale === 'es' ? 'Desde' : 'From'}</label>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">{locale === 'es' ? 'Hasta' : 'To'}</label>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => downloadReport('excel')} disabled={loading}
+              className="px-5 py-2.5 text-sm rounded-xl bg-success text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Excel
+            </button>
+            <button onClick={() => downloadReport('pdf')} disabled={loading}
+              className="px-5 py-2.5 text-sm rounded-xl bg-error text-white font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              PDF
+            </button>
           </div>
         </div>
-
-        {/* Producer Ranking */}
-        <div className="bg-card rounded-2xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">{t('producer_ranking')}</h3>
-          <div className="space-y-3">
-            {data?.topProducers?.slice(0, 8).map((producer, i) => (
-              <div key={producer.producer_id} className="flex items-center gap-4 py-3 border-b border-border last:border-0">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  i === 0 ? 'bg-yellow-500/20 text-yellow-600' :
-                  i === 1 ? 'bg-gray-300/20 text-gray-500' :
-                  i === 2 ? 'bg-amber-700/20 text-amber-700' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  #{i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{producer.full_name}</p>
-                  <p className="text-xs text-muted-foreground">{producer.email}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-foreground">{fmtMoney(producer.total_premium)}</p>
-                  <p className="text-xs text-muted-foreground">{producer.approved_quotes} {locale === 'es' ? 'aprobadas' : 'approved'}</p>
-                </div>
-              </div>
-            ))}
-            {(!data?.topProducers || data.topProducers.length === 0) && (
-              <p className="text-muted-foreground text-sm text-center py-8">{t('no_data')}</p>
-            )}
+        {loading && (
+          <div className="flex items-center gap-2 mt-4">
+            <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">{locale === 'es' ? 'Generando reporte...' : 'Generating report...'}</p>
           </div>
-        </div>
-      </div>
-
-      {/* Plan Distribution */}
-      <div className="bg-card rounded-2xl border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">{t('most_sold_plans')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {data?.planDistribution?.map((plan) => {
-            const total = data.planDistribution.reduce((s, p) => s + p.count, 0);
-            const pct = total > 0 ? (plan.count / total * 100) : 0;
-            return (
-              <div key={plan.name} className="bg-muted rounded-xl p-4 text-center">
-                <p className="text-sm font-medium text-foreground">{plan.name}</p>
-                <p className="text-2xl font-bold text-primary mt-2">{plan.count}</p>
-                <p className="text-xs text-muted-foreground">{pct.toFixed(1)}% {locale === 'es' ? 'del total' : 'of total'}</p>
-              </div>
-            );
-          })}
-          {(!data?.planDistribution || data.planDistribution.length === 0) && (
-            <p className="col-span-4 text-muted-foreground text-sm text-center py-8">{t('no_data')}</p>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

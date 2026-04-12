@@ -37,6 +37,7 @@ export const translations = {
     commissions: 'Ratificaciones',
     reports: 'Reportes',
     settings: 'Configuración',
+    profile: 'Mi Perfil',
 
     // Dashboard
     total_quotes: 'Total Cotizaciones',
@@ -189,6 +190,7 @@ export const translations = {
     commissions: 'Ratifications',
     reports: 'Reports',
     settings: 'Settings',
+    profile: 'My Profile',
 
     // Dashboard
     total_quotes: 'Total Quotes',
